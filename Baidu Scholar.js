@@ -9,7 +9,7 @@
 	"inRepository": true,
 	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2017-09-03 16:52:55"
+	"lastUpdated": "2019-10-18 02:12:45"
 }
 
 /*
@@ -41,7 +41,7 @@ function attr(docOrElem,selector,attr,index){var elem=index?docOrElem.querySelec
 
 
 function detectWeb(doc, url) {
-	if (url.indexOf('wd=paperuri')>-1) {
+	if (url.indexOf('paperid=')>-1) {
 		return "journalArticle";
 	} else if (getSearchResults(doc, true)) {
 		return "multiple";
@@ -51,7 +51,7 @@ function detectWeb(doc, url) {
 function getSearchResults(doc, checkOnly) {
 	var items = {};
 	var found = false;
-	var rows = doc.querySelectorAll('h3>a[href*="wd=paperuri"]');
+	var rows = doc.querySelectorAll('h3>a[href*="show?paperid="]');
 	for (var i=0; i<rows.length; i++) {
 		var href = rows[i].href;
 		var title = ZU.trimInternal(rows[i].textContent);
@@ -87,12 +87,16 @@ function scrape(doc, url) {
 	var diversion = attr(doc, 'i.reqdata', 'diversion');
 	var sign = attr(doc, 'a.sc_q' , 'data-sign');
 	var risUrl = "http://xueshu.baidu.com/u/citation?&url=" + encodeURIComponent(dataUrl) + "&sign=" + sign + "&diversion=" + diversion + "&t=ris";
+	var title = doc.title.replace('_百度学术', '')
+	
+	var tags = []
+	doc.querySelectorAll('p.kw_main span a').forEach(e => tags.push(ZU.trimInternal(e.textContent)))
 
 	ZU.doGet(risUrl, function(ris) {
-		//Z.debug(ris);
+		// Z.debug({ ris });
 		//delete parenthesis in pages information, e.g. SP  - 5-7(3)
 		ris = ris.replace(/(SP\s+-\s\d+-\d+)\(\d+\)$/m, "$1");
-		
+
 		var translator = Zotero.loadTranslator("import");
 		translator.setTranslator("32d59d2d-b65a-4da4-b0a3-bdd3cfb979e7");
 		translator.setString(ris);
@@ -106,15 +110,62 @@ function scrape(doc, url) {
 				item.abstractNote = text(doc, 'div.sc_abstract') || text(doc, 'p.abstract');
 			}
 			item.attachments.push({
-				title: "Snapshot",
-				document: doc
+				url,
+				title: "Baidu学术地址",
+				mimeType: "text/html",
+				snapshot: false,
 			});
+			// Sources
+			var sources = []
+			doc.querySelectorAll('div#allversion_wr span a:not(.paper_more_btn)').forEach(e => {
+				sources.push({
+					title: ZU.trimInternal(e.textContent),
+					url: e.href
+				})
+			})
+			var related = []
+			doc.querySelectorAll('div#related_lists a').forEach(e => {
+				related.push({
+					title: ZU.trimInternal(e.textContent),
+					url: e.href
+				})
+			})
+			// Z.debug({
+			// 	sources, related
+			// })
+			item.tags = tags
+			if (item.title == null) {
+				item.title = title
+			}
+			if (!item.creators || item.creators.length == 0) {
+				item.creators = []
+				doc.querySelectorAll('p.author_text a').forEach(e => {
+					var name = ZU.trimInternal(e.textContent)
+					var index = name.indexOf(',')
+					var lastName = name.slice(0, index)
+					var firstName = name.slice(index+1)
+					item.creators.push({ lastName, firstName, creatorType: 'author' })
+				})
+			}
+			if (!item.publicationTitle && attr(doc, 'a.journal_title', 'title')) {
+				item.publicationTitle = attr(doc, 'a.journal_title', 'title')
+			}
+			if (!item.date && text(doc, 'div.year_wr p.kw_main')) {
+				item.date = ZU.trimInternal(text(doc, 'div.year_wr p.kw_main'))
+			}
+			if (item.DOI == null && text(doc, 'div.doi_wr p.kw_main')) {
+				item.DOI = ZU.trimInternal(text(doc, 'div.doi_wr p.kw_main'))
+			}
+			if (!item.extra && text(doc, 'p.ref-wr-num a')) {
+				let n = ZU.trimInternal(text(doc, 'p.ref-wr-num a'))
+				item.extra = "ZSCC:"+Array(7-n.length).fill('0').join('')+n
+			}
+			
 			item.complete();
 		});
 		translator.translate();
 	});
 }
-
 
 /** BEGIN TEST CASES **/
 var testCases = [
@@ -133,7 +184,7 @@ var testCases = [
 					}
 				],
 				"date": "2011",
-				"abstractNote": "Purpose – The purpose of this paper is to highlight how the open-source bibliographic management program Zotero harnesses Web 2.0 features to make library...",
+				"abstractNote": "Purpose – The purpose of this paper is to highlight how the open-source bibliographic management program Zotero harnesses Web 2.0 features to make library resources more accessible to casual users without sacrificing advanced features. This reduces the barriers understanding library resources and provides additional functionality when organizing information resources. Design/methodology/approach – The paper reviews select aspects of the program to illustrate how it can be used by patrons and information professionals, and why information professionals should be aware of it. Findings – Zotero has some limitations, but succeeds in meeting the information management needs of a wide variety of users, particularly users who use online resources. Originality/value – This paper is of interest to information professionals seeking free software that can make managing bibliographic information easier for themselves and their patrons.",
 				"issue": "4",
 				"libraryCatalog": "Baidu Scholar",
 				"pages": "5-7",
