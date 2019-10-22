@@ -9,14 +9,14 @@
 	"inRepository": true,
 	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2019-10-18 02:12:45"
+	"lastUpdated": "2019-10-22 09:40:59"
 }
 
 /*
 	***** BEGIN LICENSE BLOCK *****
 
 	Copyright © 2017 Philipp Zumstein
-	
+
 	This file is part of Zotero.
 
 	Zotero is free software: you can redistribute it and/or modify
@@ -88,7 +88,7 @@ function scrape(doc, url) {
 	var sign = attr(doc, 'a.sc_q' , 'data-sign');
 	var risUrl = "http://xueshu.baidu.com/u/citation?&url=" + encodeURIComponent(dataUrl) + "&sign=" + sign + "&diversion=" + diversion + "&t=ris";
 	var title = doc.title.replace('_百度学术', '')
-	
+
 	var tags = []
 	doc.querySelectorAll('p.kw_main span a').forEach(e => tags.push(ZU.trimInternal(e.textContent)))
 
@@ -110,57 +110,33 @@ function scrape(doc, url) {
 				item.abstractNote = text(doc, 'div.sc_abstract') || text(doc, 'p.abstract');
 			}
 			item.attachments.push({
-				url,
-				title: "Baidu学术地址",
-				mimeType: "text/html",
-				snapshot: false,
+				title: "Snapshot",
+				document: doc
 			});
-			// Sources
-			var sources = []
-			doc.querySelectorAll('div#allversion_wr span a:not(.paper_more_btn)').forEach(e => {
-				sources.push({
-					title: ZU.trimInternal(e.textContent),
-					url: e.href
-				})
-			})
-			var related = []
-			doc.querySelectorAll('div#related_lists a').forEach(e => {
-				related.push({
-					title: ZU.trimInternal(e.textContent),
-					url: e.href
-				})
-			})
-			// Z.debug({
-			// 	sources, related
-			// })
 			item.tags = tags
-			if (item.title == null) {
+			if (!item.title) {
 				item.title = title
 			}
 			if (!item.creators || item.creators.length == 0) {
 				item.creators = []
 				doc.querySelectorAll('p.author_text a').forEach(e => {
-					var name = ZU.trimInternal(e.textContent)
-					var index = name.indexOf(',')
-					var lastName = name.slice(0, index)
-					var firstName = name.slice(index+1)
-					item.creators.push({ lastName, firstName, creatorType: 'author' })
+					item.creators.push(ZU.cleanAuthor(e.textContent, 'author', true))
 				})
 			}
-			if (!item.publicationTitle && attr(doc, 'a.journal_title', 'title')) {
+			if (!item.publicationTitle) {
 				item.publicationTitle = attr(doc, 'a.journal_title', 'title')
 			}
-			if (!item.date && text(doc, 'div.year_wr p.kw_main')) {
+			if (!item.date) {
 				item.date = ZU.trimInternal(text(doc, 'div.year_wr p.kw_main'))
 			}
-			if (item.DOI == null && text(doc, 'div.doi_wr p.kw_main')) {
+			if (!item.DOI) {
 				item.DOI = ZU.trimInternal(text(doc, 'div.doi_wr p.kw_main'))
 			}
 			if (!item.extra && text(doc, 'p.ref-wr-num a')) {
 				let n = ZU.trimInternal(text(doc, 'p.ref-wr-num a'))
 				item.extra = "ZSCC:"+Array(7-n.length).fill('0').join('')+n
 			}
-			
+
 			item.complete();
 		});
 		translator.translate();
@@ -197,9 +173,30 @@ var testCases = [
 						"title": "Snapshot"
 					}
 				],
-				"tags": [],
+				"tags": [
+					{
+						"tag": "Citation management"
+					},
+					{
+						"tag": "Internet"
+					},
+					{
+						"tag": "Library services"
+					},
+					{
+						"tag": "Open source"
+					},
+					{
+						"tag": "Reference management"
+					},
+					{
+						"tag": "Technology"
+					}
+				],
 				"notes": [],
-				"seeAlso": []
+				"seeAlso": [],
+				"DOI": "10.1108/07419051111154758",
+			    "extra": "ZSCC:0000006"
 			}
 		]
 	},
@@ -225,53 +222,15 @@ var testCases = [
 						"lastName": "Beuren",
 						"firstName": "Fernanda Hansch",
 						"creatorType": "author"
-					},
-					{
-						"lastName": "Scalvenzi",
-						"firstName": "Lisiane",
-						"creatorType": "author"
-					},
-					{
-						"lastName": "Miguel",
-						"firstName": "Paulo Augusto Cauchik",
-						"creatorType": "author"
-					},
-					{
-						"lastName": "Yamakawa",
-						"firstName": "Eduardo Kazumi",
-						"creatorType": "author"
-					},
-					{
-						"lastName": "Kubota",
-						"firstName": "Flávio Issao",
-						"creatorType": "author"
-					},
-					{
-						"lastName": "Beuren",
-						"firstName": "Fernanda Hansch",
-						"creatorType": "author"
-					},
-					{
-						"lastName": "Scalvenzi",
-						"firstName": "Lisiane",
-						"creatorType": "author"
-					},
-					{
-						"lastName": "Miguel",
-						"firstName": "Paulo Augusto Cauchik",
-						"creatorType": "author"
 					}
 				],
 				"date": "2014",
 				"DOI": "10.1590/0103-37862014000200006",
-				"abstractNote": "A elaboração de uma revisão bibliográfica confiável, a partir de trabalhos relevantes publicados anteriormente, é fundamental para evidenciar a originalidade e a contribuição científica dos trabalhos de pesquisa. Devid...",
-				"issue": "2",
+				"abstractNote": "A elaboração de uma revisão bibliográfica confiável, a partir de trabalhos relevantes publicados anteriormente, é fundamental para evidenciar a originalidade e a contribuição científica dos trabalhos de pesquisa. Devido à grande quantidade de bases de dados e de publicações disponíveis, torna-se necessário utilizar ferramentas que auxiliem na gestão das referências bibliográficas de uma maneira fácil e padronizada. O objetivo deste artigo é examinar três de gerenciamento bibliográfico utilizados com frequência por pesquisadores acadêmicos, são eles: , e . Nesse sentido, buscou-se, em primeiro lugar, evidenciar seus principais benefícios e as possíveis dificuldades de utilização. Em segundo lugar, procurou-se comparar suas principais características por meio de uma pesquisa teórico-conceitual baseada em literatura especializada, o que permitiu utilizá-los e analisá-los de maneira crítica. Assim sendo, evidenciou-se as principais particularidades de cada e foi elaborado um quadro comparativo entre os mesmos. Considerando as características analisadas nos três , concluiu-se que todos, ao mesmo tempo em que facilitam o trabalho dos pesquisadores, possuem ferramentas que facilitam as buscas, a organização e a análise dos artigos.",
 				"libraryCatalog": "Baidu Scholar",
-				"pages": "167-176",
 				"publicationTitle": "Transinformação",
 				"shortTitle": "Comparativo dos softwares de gerenciamento de referências bibliográficas",
-				"url": "http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0103-37862014000200167&lng=pt&nrm=is",
-				"volume": "26",
+				"url": "http://www.scielo.br/scielo.php?script=sci_arttext&amp;pid=S0103-37862014000200167&amp;lng=pt&amp;nrm=is",
 				"attachments": [
 					{
 						"title": "Snapshot"
@@ -279,7 +238,8 @@ var testCases = [
 				],
 				"tags": [],
 				"notes": [],
-				"seeAlso": []
+				"seeAlso": [],
+				"extra": "ZSCC:0000006"
 			}
 		]
 	},
