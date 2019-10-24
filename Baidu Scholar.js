@@ -132,10 +132,6 @@ function scrape(doc, url) {
 			if (!item.DOI) {
 				item.DOI = ZU.trimInternal(text(doc, 'div.doi_wr p.kw_main'))
 			}
-			if (!item.extra && text(doc, 'p.ref-wr-num a')) {
-				let n = ZU.trimInternal(text(doc, 'p.ref-wr-num a'))
-				item.extra = "ZSCC:"+Array(7-n.length).fill('0').join('')+n
-			}
 
 			item.complete();
 		});
@@ -195,8 +191,7 @@ var testCases = [
 				],
 				"notes": [],
 				"seeAlso": [],
-				"DOI": "10.1108/07419051111154758",
-			    "extra": "ZSCC:0000006"
+				"DOI": "10.1108/07419051111154758"
 			}
 		]
 	},
@@ -238,8 +233,7 @@ var testCases = [
 				],
 				"tags": [],
 				"notes": [],
-				"seeAlso": [],
-				"extra": "ZSCC:0000006"
+				"seeAlso": []
 			}
 		]
 	},
